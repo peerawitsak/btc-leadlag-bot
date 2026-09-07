@@ -4,13 +4,15 @@ import requests
 import numpy as np
 import pandas as pd
 import yfinance as yf
+import os
 
 warnings.filterwarnings("ignore")
 
 # ==========================================
 # CONFIGURATION
 # ==========================================
-DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1491805303975448696/vQf8856EYYwmAaBUYIB5wdygG60KnFuGA5YbqqejaX9--4sPjimKYohptvd2hQHwLILv"
+DISCORD_WEBHOOK_URL = os.getenv(
+    "DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/1491805303975448696/vQf8856EYYwmAaBUYIB5wdygG60KnFuGA5YbqqejaX9--4sPjimKYohptvd2hQHwLILv")
 
 # ==========================================
 # 1. DATA FETCHING & ATR CALCULATION
