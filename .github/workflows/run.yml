@@ -1,4 +1,4 @@
-https://discord.com/api/webhooks/1491805303975448696/vQf8856EYYwmAaBUYIB5wdygG60KnFuGA5YbqqejaX9--4sPjimKYohptvd2hQHwLILvname: Daily Trade Signal Bot
+name: Daily Trade Signal Bot
 
 on:
   schedule:
