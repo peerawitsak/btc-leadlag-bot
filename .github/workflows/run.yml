@@ -2,12 +2,9 @@ name: Daily Trade Signal Bot
 
 on:
   schedule:
-    # 00:05 UTC = 07:05 น. เวลาไทย (เช้า)
-    # 12:05 UTC = 19:05 น. เวลาไทย (เย็น)
-    # 18:24 UTC = 01:24 น. เวลาไทย (ดึก)
     - cron: '5 0 * * *'
     - cron: '5 12 * * *'
-    - cron: '30 18 * * *'
+    - cron: '40 18 * * *'
   workflow_dispatch:
 
 jobs:
