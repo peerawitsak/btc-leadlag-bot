@@ -7,7 +7,7 @@ on:
     # 18:24 UTC = 01:24 น. เวลาไทย (ดึก)
     - cron: '5 0 * * *'
     - cron: '5 12 * * *'
-    - cron: '24 18 * * *'
+    - cron: '30 18 * * *'
   workflow_dispatch:
 
 jobs:
