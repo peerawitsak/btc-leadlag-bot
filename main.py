@@ -1,10 +1,11 @@
+import os
 import warnings
 import json
 import requests
+import datetime
 import numpy as np
 import pandas as pd
 import yfinance as yf
-import os
 
 warnings.filterwarnings("ignore")
 
@@ -12,7 +13,9 @@ warnings.filterwarnings("ignore")
 # CONFIGURATION
 # ==========================================
 DISCORD_WEBHOOK_URL = os.getenv(
-    "DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/1491805303975448696/vQf8856EYYwmAaBUYIB5wdygG60KnFuGA5YbqqejaX9--4sPjimKYohptvd2hQHwLILv")
+    "DISCORD_WEBHOOK_URL",
+    "https://discord.com/api/webhooks/1491805303975448696/vQf8856EYYwmAaBUYIB5wdygG60KnFuGA5YbqqejaX9--4sPjimKYohptvd2hQHwLILv"
+)
 
 # ==========================================
 # 1. DATA FETCHING & ATR CALCULATION
@@ -20,15 +23,15 @@ DISCORD_WEBHOOK_URL = os.getenv(
 def fetch_live_data(
     leader: str = "^TNX", follower: str = "BTC-USD", lookback_days: int = 200
 ) -> pd.DataFrame:
-    raw = yf.download(
-        [leader, follower], period=f"{lookback_days}d", interval="1d", auto_adjust=True
-    )
+    # ดึงทีละตัวเพื่อป้องกันปัญหาสนโครงสร้าง Multi-Index ของ yfinance
+    leader_data = yf.download(leader, period=f"{lookback_days}d", interval="1d", auto_adjust=True, progress=False)
+    follower_data = yf.download(follower, period=f"{lookback_days}d", interval="1d", auto_adjust=True, progress=False)
 
     df = pd.DataFrame()
-    df["Leader_Close"] = raw["Close"][leader].squeeze()
-    df["Follower_Close"] = raw["Close"][follower].squeeze()
-    df["Follower_High"] = raw["High"][follower].squeeze()
-    df["Follower_Low"] = raw["Low"][follower].squeeze()
+    df["Leader_Close"] = leader_data["Close"].squeeze()
+    df["Follower_Close"] = follower_data["Close"].squeeze()
+    df["Follower_High"] = follower_data["High"].squeeze()
+    df["Follower_Low"] = follower_data["Low"].squeeze()
 
     df = df.ffill().dropna()
 
@@ -54,12 +57,15 @@ def fetch_live_data(
 # ==========================================
 def send_discord_webhook(webhook_url: str, data: dict):
     """ส่งข้อมูล Signal เข้า Discord Webhook ในรูปแบบ Embed"""
-    # แก้ไขเงื่อนไขเช็ค URL ให้ถูกต้อง
     if not webhook_url or webhook_url == "YOUR_DISCORD_WEBHOOK_URL_HERE":
         print("[Warning] Discord Webhook URL is not set. Skipping Discord alert.")
         return
 
-    # กำหนดสี Embed ตาม Signal
+    # คำนวณช่วงเวลาแบบไทย (UTC+7) เพื่อใส่ป้าย Morning / Evening
+    utc_now = datetime.datetime.now(datetime.timezone.utc)
+    th_now = utc_now + datetime.timedelta(hours=7)
+    session_label = "🌅 MORNING SESSION (07:00)" if th_now.hour < 12 else "🌇 EVENING SESSION (19:00)"
+
     color = 0x808080  # สีเทา (HOLD)
     if data["final_signal"] == 1:
         color = 0x2ECC71  # สีเขียว (LONG)
@@ -67,7 +73,7 @@ def send_discord_webhook(webhook_url: str, data: dict):
         color = 0xE74C3C  # สีแดง (SHORT)
 
     embed = {
-        "title": "🤖 AUTOMATIC DAILY TRADE SIGNAL",
+        "title": f"🤖 AUTOMATIC TRADE SIGNAL [{session_label}]",
         "description": f"**Date Evaluated:** {data['latest_date']}\n**Follower:** BTC-USD (${data['latest_close']:,.2f})\n**Leader:** ^TNX (US 10Y Yield)",
         "color": color,
         "fields": [
@@ -100,6 +106,7 @@ def send_discord_webhook(webhook_url: str, data: dict):
             print("Successfully sent signal alert to Discord!")
         else:
             print(f"Failed to send to Discord. Status code: {response.status_code}")
+            print(f"Response body: {response.text}")
     except Exception as e:
         print(f"Error sending Discord webhook: {e}")
 
@@ -177,7 +184,6 @@ def calculate_today_signal(
         sl_price = 0.0
         tp_price = 0.0
 
-    # รวบรวมข้อมูลเพื่อส่งออก
     signal_data = {
         "latest_date": latest_date,
         "latest_close": latest_close,
@@ -195,9 +201,7 @@ def calculate_today_signal(
         "tp_pct": tp_pct
     }
 
-    # ส่งเข้า Discord
     send_discord_webhook(DISCORD_WEBHOOK_URL, signal_data)
-
 
 if __name__ == "__main__":
     df = fetch_live_data(leader="^TNX", follower="BTC-USD")
